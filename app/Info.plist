@@ -11,18 +11,18 @@
 	<key>CFBundleGetInfoString</key>
 	<string>A minimal fast STL viewer</string>
 	<key>CFBundleExecutable</key>
-	<string>fstl</string>
+	<string>fsml</string>
 	<key>CFBundleIdentifier</key>
-    <string>com.impraxical.fstl</string>
+    <string>com.maeyanie.fsml</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
             <key>CFBundleTypeExtensions</key>
             <array>
-                <string>stl</string>
+                <string>sml</string>
             </array>
             <key>CFBundleTypeName</key>
-            <string>Stereolithography file</string>
+            <string>SML file</string>
             <key>CFBundleTypeRole</key>
             <string>Viewer</string>
         </dict>

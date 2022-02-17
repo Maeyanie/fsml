@@ -3,19 +3,19 @@ set -x -e
 
 cd ../build
 make clean
-rm -rf fstl.app
+rm -rf fsml.app
 make -j8
 
-APP=fstl
+APP=fsml
 
 # Pull out framework paths info with otool
-MACDEPLOYQT=`otool -L $APP.app/Contents/MacOS/fstl | sed -n -e "s:\(.*\)lib/QtCore.*:\1/bin/macdeployqt:gp"`
+MACDEPLOYQT=`otool -L $APP.app/Contents/MacOS/fsml | sed -n -e "s:\(.*\)lib/QtCore.*:\1/bin/macdeployqt:gp"`
 
 $MACDEPLOYQT $APP.app
 cp ../app/Info.plist $APP.app/Contents/
 
 # Delete unused Qt plugins
-cd fstl.app/Contents/PlugIns
+cd fsml.app/Contents/PlugIns
 rm -rf accessible audio imageformats mediaservice playlistformats position printsupport qml1tooling sensorgestures sensors
 
 fix_qt () {

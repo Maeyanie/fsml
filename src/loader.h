@@ -13,12 +13,9 @@ public:
     void run();
 
 protected:
-    Mesh* load_stl();
+    Mesh* load_sml();
 
-    /*  Reads an ASCII stl, starting from the start of the file*/
-    Mesh* read_stl_ascii(QFile& file);
-    /*  Reads a binary stl, assuming we're at the end of the header */
-    Mesh* read_stl_binary(QFile& file);
+    Mesh* read_sml1(QFile& file);
 
 signals:
     void loaded_file(QString filename);

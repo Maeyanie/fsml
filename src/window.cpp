@@ -28,7 +28,7 @@ Window::Window(QWidget *parent) :
     watcher(new QFileSystemWatcher(this))
 
 {
-    setWindowTitle("fstl");
+    setWindowTitle("fsml");
     setAcceptDrops(true);
 
     QSurfaceFormat format;
@@ -140,21 +140,22 @@ Window::Window(QWidget *parent) :
 void Window::on_open()
 {
     QString filename = QFileDialog::getOpenFileName(
-                this, "Load .stl file", QString(), "STL files (*.stl, *.STL)");
+                this, "Load .sml file", QString(), "SML files (*.sml, *.SML)");
     if (!filename.isNull())
     {
-        load_stl(filename);
+        load_sml(filename);
     }
 }
 
 void Window::on_about()
 {
     QMessageBox::about(this, "",
-        "<p align=\"center\"><b>fstl</b><br>" FSTL_VERSION "</p>"
-        "<p>A fast viewer for <code>.stl</code> files.<br>"
-        "<a href=\"https://github.com/fstl-app/fstl\""
-        "   style=\"color: #93a1a1;\">https://github.com/fstl-app/fstl</a></p>"
-        "<p>© 2014-2017 Matthew Keeter<br>"
+        "<p align=\"center\"><b>fsml</b><br>" FSTL_VERSION "</p>"
+        "<p>A fast viewer for <code>.sml</code> files.<br>"
+        "<a href=\"https://github.com/Maeyanie/fsml\""
+        "   style=\"color: #93a1a1;\">https://github.com/Maeyanie/fsml</a></p>"
+		"<p>© 2022 Maeyanie<br>"
+        "© 2014-2017 Matthew Keeter<br>"
         "<a href=\"mailto:matt.j.keeter@gmail.com\""
         "   style=\"color: #93a1a1;\">matt.j.keeter@gmail.com</a></p>");
 }
@@ -163,7 +164,7 @@ void Window::on_bad_stl()
 {
     QMessageBox::critical(this, "Error",
                           "<b>Error:</b><br>"
-                          "This <code>.stl</code> file is invalid or corrupted.<br>"
+                          "This <code>.sml</code> file is invalid or corrupted.<br>"
                           "Please export it from the original source, verify, and retry.");
 }
 
@@ -257,7 +258,7 @@ void Window::on_watched_change(const QString& filename)
 {
     if (autoreload_action->isChecked())
     {
-        load_stl(filename, true);
+        load_sml(filename, true);
     }
 }
 
@@ -278,7 +279,7 @@ void Window::on_clear_recent()
 
 void Window::on_load_recent(QAction* a)
 {
-    load_stl(a->data().toString());
+    load_sml(a->data().toString());
 }
 
 void Window::on_loaded(const QString& filename)
@@ -354,11 +355,11 @@ void Window::on_reload()
     auto fs = watcher->files();
     if (fs.size() == 1)
     {
-        load_stl(fs[0], true);
+        load_sml(fs[0], true);
     }
 }
 
-bool Window::load_stl(const QString& filename, bool is_reload)
+bool Window::load_sml(const QString& filename, bool is_reload)
 {
     if (!open_action->isEnabled())  return false;
 
@@ -405,14 +406,14 @@ void Window::dragEnterEvent(QDragEnterEvent *event)
     if (event->mimeData()->hasUrls())
     {
         auto urls = event->mimeData()->urls();
-        if (urls.size() == 1 && urls.front().path().endsWith(".stl"))
+        if (urls.size() == 1 && urls.front().path().endsWith(".sml"))
             event->acceptProposedAction();
     }
 }
 
 void Window::dropEvent(QDropEvent *event)
 {
-    load_stl(event->mimeData()->urls().front().toLocalFile());
+    load_sml(event->mimeData()->urls().front().toLocalFile());
 }
 
 void Window::sorted_insert(QStringList& list, const QCollator& collator, const QString& value)
@@ -454,7 +455,7 @@ void Window::build_folder_file_list()
     QCollator collator;
     collator.setNumericMode(true);
 
-    QDirIterator dirIterator(lookup_folder, QStringList() << "*.stl", QDir::Files | QDir::Readable | QDir::Hidden);
+    QDirIterator dirIterator(lookup_folder, QStringList() << "*.sml", QDir::Files | QDir::Readable | QDir::Hidden);
     while (dirIterator.hasNext()) {
         dirIterator.next();
 
@@ -508,7 +509,7 @@ bool Window::load_prev(void)
         return false;
     }
 
-    return load_stl(neighbors.first);
+    return load_sml(neighbors.first);
 }
 
 bool Window::load_next(void)
@@ -518,7 +519,7 @@ bool Window::load_next(void)
         return false;
     }
 
-    return load_stl(neighbors.second);
+    return load_sml(neighbors.second);
 }
 
 void Window::keyPressEvent(QKeyEvent* event)

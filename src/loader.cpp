@@ -11,7 +11,7 @@ Loader::Loader(QObject* parent, const QString& filename, bool is_reload)
 
 void Loader::run()
 {
-    Mesh* mesh = load_stl();
+    Mesh* mesh = load_sml();
     if (mesh)
     {
         if (mesh->empty())
@@ -107,7 +107,7 @@ Mesh* mesh_from_verts(uint32_t tri_count, QVector<Vertex>& verts)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Mesh* Loader::load_stl()
+Mesh* Loader::load_sml()
 {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly))
@@ -116,121 +116,113 @@ Mesh* Loader::load_stl()
         return NULL;
     }
 
-    // First, try to read the stl as an ASCII file
-    if (file.read(5) == "solid")
-    {
-        file.readLine(); // skip solid name
-        const auto line = file.readLine().trimmed();
-        if (line.startsWith("facet") ||
-            line.startsWith("endsolid"))
-        {
-            file.seek(0);
-            return read_stl_ascii(file);
-        }
-        // Otherwise, this STL is a binary stl but contains 'solid' as
-        // the first five characters.  This is a bad life choice, but
-        // we can gracefully handle it by falling through to the binary
-        // STL reader below.
-    }
+	if (file.read(4) == "SML1") {
+		return read_sml1(file);
+	}
 
-    file.seek(0);
-    return read_stl_binary(file);
+	emit error_bad_stl();
+	return NULL;
 }
 
-Mesh* Loader::read_stl_binary(QFile& file)
+Mesh* Loader::read_sml1(QFile& file)
 {
     QDataStream data(&file);
     data.setByteOrder(QDataStream::LittleEndian);
     data.setFloatingPointPrecision(QDataStream::SinglePrecision);
 
-    // Load the triangle count from the .stl file
-    file.seek(80);
-    uint32_t tri_count;
-    data >> tri_count;
+    file.seek(4);
+	uint32_t crc;
+	data >> crc;
+	// TODO: Check this for validity and warn the user if it's not.
+	
+	QVector<Vertex> tris;
+	QVector<Vertex> vertlist;
+	
+	while (!data.atEnd()) {
+		uint8_t segtype;
+		data >> segtype;
+		
+		uint32_t seglen;
+		data >> seglen;
+		
+		switch (segtype) {
+			case 0: { // Comment
+				data.skipRawData(seglen);
+			} break;
+			case 1: { // Float vertex list
+				uint32_t count = seglen / 12;
+				vertlist.clear();
+				vertlist.reserve(count);
+				float coords[3];
+				for (uint32_t i = 0; i < count; i++) {
+					data.readRawData((char*)coords, 12);
+					vertlist.push_back(Vertex(coords[0], coords[1], coords[2]));
+				}
+			} break;
+			case 2: { // Double vertex list
+				uint32_t count = seglen / 24;
+				vertlist.clear();
+				vertlist.reserve(count);
+				double coords[3];
+				for (uint32_t i = 0; i < count; i++) {
+					data.readRawData((char*)coords, 24);
+					vertlist.push_back(Vertex(coords[0], coords[1], coords[2]));
+				}
+			} break;
+			case 3: { // Triangle list
+				uint32_t count = seglen / 12;
+				uint32_t verts[3];
+				for (uint32_t i = 0; i < count; i++) {
+					data.readRawData((char*)verts, 12);
+					
+					tris.push_back(vertlist[verts[0]]);
+					tris.push_back(vertlist[verts[1]]);
+					tris.push_back(vertlist[verts[2]]);
+				}
+			} break;
+			case 4: { // Quad list
+				uint32_t count = seglen / 16;
+				uint32_t verts[4];
+				for (uint32_t i = 0; i < count; i++) {
+					data.readRawData((char*)verts, 16);
+					
+					tris.push_back(vertlist[verts[0]]);
+					tris.push_back(vertlist[verts[1]]);
+					tris.push_back(vertlist[verts[2]]);
+					
+					tris.push_back(vertlist[verts[0]]);
+					tris.push_back(vertlist[verts[2]]);
+					tris.push_back(vertlist[verts[3]]);
+				}
+			} break;
+			case 5: { // Triangle strip
+				int points = seglen / 4;
+				uint32_t verts[3];
+				
+				data.readRawData((char*)verts, 12);
+				tris.push_back(vertlist[verts[0]]);
+				tris.push_back(vertlist[verts[1]]);
+				tris.push_back(vertlist[verts[2]]);
+				
+				for (int i = 3; i < points; i++) {
+					/* i=0  0 1 2
+					   i=3  0 2 3	2->1
+					   i=4  3 2 4	2->0 */
+					verts[i & 1] = verts[2];
+					data >> verts[2];
+					
+					tris.push_back(vertlist[verts[0]]);
+					tris.push_back(vertlist[verts[1]]);
+					tris.push_back(vertlist[verts[2]]);
+				}
+			} break;
+			default:
+				emit error_bad_stl();
+				return NULL;
+		}
+	}
 
-    // Verify that the file is the right size
-    if (file.size() != 84 + tri_count*50)
-    {
-        emit error_bad_stl();
-        return NULL;
-    }
-
-    // Extract vertices into an array of xyz, unsigned pairs
-    QVector<Vertex> verts(tri_count*3);
-
-    // Dummy array, because readRawData is faster than skipRawData
-    std::unique_ptr<uint8_t[]> buffer(new uint8_t[tri_count * 50]);
-    data.readRawData((char*)buffer.get(), tri_count * 50);
-
-    // Store vertices in the array, processing one triangle at a time.
-    auto b = buffer.get() + 3 * sizeof(float);
-    for (auto v=verts.begin(); v != verts.end(); v += 3)
-    {
-        // Load vertex data from .stl file into vertices
-        for (unsigned i=0; i < 3; ++i)
-        {
-            qFromLittleEndian<float>(b, 3, &v[i]);
-            b += 3 * sizeof(float);
-        }
-
-        // Skip face attribute and next face's normal vector
-        b += 3 * sizeof(float) + sizeof(uint16_t);
-    }
-
-    return mesh_from_verts(tri_count, verts);
+    return mesh_from_verts(tris.size()/3, tris);
 }
 
-Mesh* Loader::read_stl_ascii(QFile& file)
-{
-    file.readLine();
-    uint32_t tri_count = 0;
-    QVector<Vertex> verts(tri_count*3);
-
-    bool okay = true;
-    while (!file.atEnd() && okay)
-    {
-        const auto line = file.readLine().simplified();
-        if (line.startsWith("endsolid"))
-        {
-            break;
-        }
-        else if (!line.startsWith("facet normal") ||
-                 !file.readLine().simplified().startsWith("outer loop"))
-        {
-            okay = false;
-            break;
-        }
-
-        for (int i=0; i < 3; ++i)
-        {
-            auto line = file.readLine().simplified().split(' ');
-            if (line[0] != "vertex")
-            {
-                okay = false;
-                break;
-            }
-            const float x = line[1].toFloat(&okay);
-            const float y = line[2].toFloat(&okay);
-            const float z = line[3].toFloat(&okay);
-            verts.push_back(Vertex(x, y, z));
-        }
-        if (!file.readLine().trimmed().startsWith("endloop") ||
-            !file.readLine().trimmed().startsWith("endfacet"))
-        {
-            okay = false;
-            break;
-        }
-        tri_count++;
-    }
-
-    if (okay)
-    {
-        return mesh_from_verts(tri_count, verts);
-    }
-    else
-    {
-        emit error_bad_stl();
-        return NULL;
-    }
-}
 

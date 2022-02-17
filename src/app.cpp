@@ -8,9 +8,9 @@ App::App(int& argc, char *argv[]) :
     QApplication(argc, argv), window(new Window())
 {
     if (argc > 1)
-        window->load_stl(argv[1]);
+        window->load_sml(argv[1]);
     else
-        window->load_stl(":gl/sphere.stl");
+        window->load_sml(":gl/sphere.sml");
     window->show();
 }
 
@@ -23,7 +23,7 @@ bool App::event(QEvent* e)
 {
     if (e->type() == QEvent::FileOpen)
     {
-        window->load_stl(static_cast<QFileOpenEvent*>(e)->file());
+        window->load_sml(static_cast<QFileOpenEvent*>(e)->file());
         return true;
     }
     else
