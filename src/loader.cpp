@@ -1,7 +1,12 @@
 #include <future>
+#include <iostream>
 
 #include "loader.h"
 #include "vertex.h"
+
+extern "C" {
+	uint32_t crc32c(uint32_t crc, void const *buf, size_t len);
+};
 
 Loader::Loader(QObject* parent, const QString& filename, bool is_reload)
     : QThread(parent), filename(filename), is_reload(is_reload)
@@ -133,11 +138,28 @@ Mesh* Loader::read_sml1(QFile& file)
     file.seek(4);
 	uint32_t crc;
 	data >> crc;
-	// TODO: Check this for validity and warn the user if it's not.
+	
+	{
+		uint32_t realcrc = 0;
+		int len;
+		char* buffer = new char[1024*1024];
+		while (!data.atEnd()) {
+			len = data.readRawData(buffer, 1024*1024);
+			realcrc = crc32c(realcrc, buffer, len);
+		}
+		delete [] buffer;
+		if (crc != realcrc) {
+			std::cout << "CRC mismatch: " << crc << " != " << realcrc << std::endl;
+			emit error_bad_stl();
+		} else {
+			std::cout << "CRC OK: " << crc << " == " << realcrc << std::endl;
+		}
+	}
 	
 	QVector<Vertex> tris;
 	QVector<Vertex> vertlist;
 	
+	file.seek(8);
 	while (!data.atEnd()) {
 		uint8_t segtype;
 		data >> segtype;
@@ -217,6 +239,7 @@ Mesh* Loader::read_sml1(QFile& file)
 				}
 			} break;
 			default:
+				std::cout << "Bad segment type: " << (int)segtype << std::endl;
 				emit error_bad_stl();
 				return NULL;
 		}
