@@ -3,7 +3,7 @@
 `fsml` a fork of `fstl` modified to read SML files.
 
 `fstl` was originally written by [Matt Keeter](https://mattkeeter.com),
-and is now primarily maintained by [@DeveloperPaul123](https://github.com/DeveloperPaul123).
+and is now primarily maintained by [@DeveloperPaul123](https://github.com/DeveloperPaul123).  
 The modifications in this fork are by Maeyanie.
 
 fsml is designed to quickly load and render very high-polygon models;
@@ -105,7 +105,7 @@ make -j8
 
 # License
 
-Copyright (c) 2022 Maeyanie 
+Copyright (c) 2022 Maeyanie  
 Copyright (c) 2014-2017 Matthew Keeter 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -134,5 +134,5 @@ Includes CRC32C code Copyright (C) 2013, 2021 Mark Adler
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 
-  Mark Adler
+  Mark Adler  
   madler@alumni.caltech.edu  
